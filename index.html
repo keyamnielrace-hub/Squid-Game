@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission: Explore the Universe!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Fredoka', 'cursive']
+                    },
+                    colors: {
+                        space: {
+                            dark: '#0B0D1B',
+                            card: '#161936',
+                            accent: '#6366F1',
+                            neonPink: '#EC4899',
+                            neonCyan: '#06B6D4',
+                            neonYellow: '#F59E0B',
+                            neonGreen: '#10B981',
+                            purple: '#8B5CF6'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 4s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'spin-slow': 'spin 20s linear infinite'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-12px)' }
+                        },
+                        glow: {
+                            '0%': { filter: 'drop-shadow(0 0 5px rgba(99, 102, 241, 0.6))' },
+                            '100%': { filter: 'drop-shadow(0 0 20px rgba(236, 72, 153, 0.9))' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #080914;
+            color: #F3F4F6;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0D1B;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3730A3;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4F46E5;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(22, 25, 54, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(30, 35, 75, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
+        }
+
+        /* Starry background canvas */
+        #stars-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Drag and Drop Styling */
+        .draggable-item {
+            cursor: grab;
+            touch-action: none;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+        .drop-target-active {
+            border-color: #06B6D4 !important;
+            background-color: rgba(6, 182, 212, 0.15) !important;
+        }
+
+        /* Custom Neon Glow Utilities */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+        .glow-pink {
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+        }
+        .glow-yellow {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans relative text-gray-100">
+
+    <!-- Background Starfield Canvas -->
+    <canvas id="stars-canvas"></canvas>
+
+    <!-- Top Navigation Header -->
+    <header class="relative z-10 border-b border-indigo-900/40 glass-panel sticky top-0 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <!-- App Logo / Title -->
+            <button onclick="app.showHome()" class="flex items-center space-x-3 group text-left">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid font-black fa-rocket text-xl text-white transform -rotate-45"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-lg md:text-xl bg-gradient-to-r from-cyan-400 via-pink-400 to-yellow-300 bg-clip-text text-transparent">
+                        MISSION: EXPLORE THE UNIVERSE
+                    </h1>
+                    <p class="text-xs text-indigo-300 tracking-wider font-semibold">GRADE 11 EARTH & SPACE SCIENCE</p>
+                </div>
+            </button>
+
+            <!-- Navigation Controls & Status -->
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <!-- User Rank & Points Pill -->
+                <div class="hidden sm:flex items-center bg-indigo-950/80 border border-indigo-700/50 rounded-full px-3 py-1 space-x-2">
+                    <i class="fa-solid fa-star text-yellow-400 animate-pulse"></i>
+                    <span id="header-points" class="font-bold text-yellow-300 text-sm">0 PTS</span>
+                    <span class="text-indigo-500">|</span>
+                    <span id="header-rank" class="text-xs text-indigo-200 font-medium">Cadet</span>
+                </div>
+
+                <!-- Sound Toggle Button -->
+                <button id="sound-btn" onclick="app.toggleSound()" class="w-9 h-9 rounded-full bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-600/50 flex items-center justify-center text-indigo-200 hover:text-white transition-colors" title="Toggle Sound FX">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+
+                <!-- Badges Screen Button -->
+                <button onclick="app.showBadgesModal()" class="w-9 h-9 rounded-full bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-600/50 flex items-center justify-center text-yellow-400 hover:scale-105 transition-all relative" title="View Badges">
+                    <i class="fa-solid fa-award text-base"></i>
+                    <span id="badge-count-badge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 flex-grow max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+
+        <!-- VIEW 1: HOME / DASHBOARD SCREEN -->
+        <section id="view-home" class="space-y-8 py-4">
+            <!-- Hero Banner -->
+            <div class="glass-panel rounded-3xl p-6 md:p-8 relative overflow-hidden border border-indigo-500/30">
+                <div class="absolute -right-12 -top-12 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-12 -bottom-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div class="space-y-4 max-w-xl text-center md:text-left">
+                        <div class="inline-flex items-center space-x-2 bg-indigo-900/70 border border-indigo-500/40 rounded-full px-4 py-1 text-xs font-semibold text-cyan-300">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                            <span>ASTRONAUT ACADEMY SIMULATION</span>
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-display font-bold leading-tight bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+                            Ready for Your Cosmic Journey?
+                        </h2>
+                        <p class="text-indigo-200 text-sm md:text-base leading-relaxed">
+                            Embark on an expedition across the cosmos! Test your knowledge on Earth systems, planetary science, stellar evolution, and cosmic formation to fuel your rocket to Alpha Centauri!
+                        </p>
+
+                        <!-- Difficulty Selection Selector -->
+                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3">
+                            <span class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Difficulty Level:</span>
+                            <div class="flex bg-indigo-950/80 p-1 rounded-xl border border-indigo-800/60">
+                                <button onclick="app.setDifficulty('easy')" id="diff-btn-easy" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white">EASY</button>
+                                <button onclick="app.setDifficulty('medium')" id="diff-btn-medium" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-md">MEDIUM</button>
+                                <button onclick="app.setDifficulty('hard')" id="diff-btn-hard" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white">HARD</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cartoon Astronaut Illustration -->
+                    <div class="w-40 h-40 md:w-56 md:h-56 relative flex items-center justify-center flex-shrink-0">
+                        <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulse-slow blur-xl"></div>
+                        <div class="relative animate-float text-center">
+                            <i class="fa-solid fa-user-astronaut text-8xl md:text-9xl text-indigo-200 filter drop-shadow-[0_10px_15px_rgba(139,92,246,0.5)]"></i>
+                            <div class="absolute -bottom-2 -right-2 bg-yellow-400 text-slate-900 font-extrabold text-xs px-2 py-1 rounded-md shadow-lg rotate-12">
+                                READY!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Modes Grid -->
+            <div>
+                <h3 class="font-display text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-gamepad text-pink-400"></i>
+                    <span>Select Mission Mode</span>
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Mode 1: Space Quiz -->
+                    <div onclick="app.startMode('quiz')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-cyan-400">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-cyan-300 transition-colors">Space Quiz</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Multiple-choice questions covering Earth subsystems, stars, and planetary science.</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-cyan-400">
+                            <span>10 QUESTIONS</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 2: Planet Challenge -->
+                    <div onclick="app.startMode('planet')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-pink-500">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-globe"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-pink-300 transition-colors">Planet Challenge</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Identify planets & celestial bodies based on science facts and visual hints.</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-pink-400">
+                            <span>IDENTIFY BODIES</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 3: True or False -->
+                    <div onclick="app.startMode('tf')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-yellow-400">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-yellow-300 transition-colors">True or False</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Fast-paced binary choices to bust myths and verify scientific facts.</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-yellow-400">
+                            <span>RAPID DECISION</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 4: Match the Stars -->
+                    <div onclick="app.startMode('match')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-purple-500">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-diagram-project"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-purple-300 transition-colors">Match the Stars</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Connect astronomical terms with their corresponding definitions.</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-purple-400">
+                            <span>MATCHING GAME</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 5: Earth Formation Challenge -->
+                    <div onclick="app.startMode('formation')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-emerald-400">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-emerald-300 transition-colors">Earth Formation</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Arrange key historical events of Earth and Solar System timeline chronologically.</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-emerald-400">
+                            <span>TIMELINE ORDER</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 6: Lightning Round -->
+                    <div onclick="app.startMode('lightning')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-red-500">
+                        <div>
+                            <div class="w-12 h-12 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-stopwatch"></i>
+                            </div>
+                            <h4 class="font-display font-bold text-lg text-white mb-1 group-hover:text-red-300 transition-colors">Lightning Round</h4>
+                            <p class="text-xs text-indigo-200/80 leading-normal">Answer as many rapid questions as possible before the 30s timer runs out!</p>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs font-bold text-red-400">
+                            <span>30s SPEED RUN</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode 7: Final Space Mission -->
+                    <div onclick="app.startMode('mission')" class="glass-card rounded-2xl p-5 cursor-pointer group flex flex-col justify-between border-l-4 border-l-indigo-400 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-indigo-950/80 via-purple-950/60 to-slate-900/80">
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-indigo-500/30 text-indigo-300 flex items-center justify-center text-3xl shrink-0 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-shuttle-space"></i>
+                            </div>
+                            <div class="text-center sm:text-left">
+                                <div class="inline-block bg-yellow-400/20 text-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-1">Ultimate Challenge</div>
+                                <h4 class="font-display font-bold text-xl text-white group-hover:text-indigo-300 transition-colors">Final Space Mission: Expedition Alpha Centauri</h4>
+                                <p class="text-xs text-indigo-200/90 max-w-2xl mt-1">Multi-stage mission where every correct response builds rocket fuel, structural integrity, and navigation data for launch!</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 sm:mt-2 flex items-center justify-between text-xs font-bold text-indigo-300 border-t border-indigo-800/40 pt-3">
+                            <span>COMPREHENSIVE MULTI-STAGE EXPEDITION</span>
+                            <span class="bg-indigo-600 px-3 py-1 rounded-lg text-white flex items-center gap-1 group-hover:bg-indigo-500">
+                                Launch Mission <i class="fa-solid fa-paper-plane text-xs"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: GAMEPLAY ARENA VIEW -->
+        <section id="view-game" class="hidden py-4 space-y-6">
+            <!-- Game Header Status Bar -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 border border-indigo-700/50">
+                <div class="flex items-center space-x-3">
+                    <button onclick="app.confirmQuit()" class="w-8 h-8 rounded-lg bg-indigo-900/80 hover:bg-red-950 text-indigo-300 hover:text-red-400 flex items-center justify-center transition-colors" title="Quit to Menu">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <span id="game-mode-title" class="text-xs font-bold text-cyan-400 uppercase tracking-wider">SPACE QUIZ</span>
+                        <h3 id="game-mode-subtitle" class="font-display text-sm md:text-base font-bold text-white">Question 1 of 10</h3>
+                    </div>
+                </div>
+
+                <!-- Timer & Streak Indicator -->
+                <div class="flex items-center space-x-4">
+                    <!-- Timer Pill -->
+                    <div id="timer-container" class="flex items-center space-x-2 bg-indigo-950/90 border border-indigo-700/60 px-3 py-1.5 rounded-xl">
+                        <i class="fa-regular fa-clock text-pink-400 animate-pulse"></i>
+                        <span id="game-timer" class="font-mono font-bold text-sm text-pink-300">--s</span>
+                    </div>
+
+                    <!-- Streak Multiplier -->
+                    <div id="streak-container" class="flex items-center space-x-1.5 bg-yellow-500/20 border border-yellow-500/40 px-3 py-1.5 rounded-xl">
+                        <i class="fa-solid fa-fire text-yellow-400"></i>
+                        <span id="game-streak" class="font-bold text-xs text-yellow-300">1x</span>
+                    </div>
+
+                    <!-- Score Indicator -->
+                    <div class="bg-indigo-900/60 border border-indigo-700/50 px-3 py-1.5 rounded-xl text-right">
+                        <div class="text-[10px] text-indigo-300 uppercase font-bold">SCORE</div>
+                        <div id="game-score" class="font-display font-bold text-yellow-300 text-sm">0</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Progress Bar -->
+                <div class="w-full bg-indigo-950 rounded-full h-2 overflow-hidden border border-indigo-800/50">
+                    <div id="game-progress-bar" class="bg-gradient-to-r from-cyan-400 via-indigo-500 to-pink-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC GAME CONTAINER BODY -->
+            <div id="game-content-area" class="min-h-[360px] flex flex-col justify-center">
+                <!-- Content will be injected dynamically by JavaScript -->
+            </div>
+
+            <!-- Interactive Feedback & Explanation Card -->
+            <div id="feedback-card" class="hidden glass-panel rounded-2xl p-5 border-2 transition-all animate-bounce-short">
+                <div class="flex items-start gap-4">
+                    <div id="feedback-icon-box" class="w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                        <!-- Icon injected -->
+                    </div>
+                    <div class="space-y-1 flex-grow">
+                        <div id="feedback-title" class="font-display font-bold text-lg">Correct!</div>
+                        <p id="feedback-text" class="text-xs md:text-sm text-gray-200 leading-relaxed"></p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button id="feedback-next-btn" onclick="app.nextQuestion()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-xs md:text-sm flex items-center gap-2 shadow-lg transition-all">
+                        <span>Continue Mission</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: MISSION RESULTS / PERFORMANCE SUMMARY SCREEN -->
+        <section id="view-results" class="hidden py-4 space-y-6">
+            <div class="glass-panel rounded-3xl p-6 md:p-8 text-center space-y-6 border border-indigo-500/30 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-indigo-500/10 via-transparent to-purple-500/10 pointer-events-none"></div>
+
+                <!-- Mission Rank Badge -->
+                <div class="relative z-10 space-y-2">
+                    <div id="result-badge-icon" class="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-5xl text-white shadow-2xl animate-float">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-display font-bold text-white mt-4">Mission Complete!</h2>
+                    <p id="result-rank-title" class="text-pink-300 font-bold text-base md:text-lg">GALACTIC EXPLORER RANK ACHIEVED</p>
+                </div>
+
+                <!-- Stats Summary Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-3xl mx-auto relative z-10">
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-700/50">
+                        <div class="text-xs text-indigo-300 font-bold uppercase">FINAL SCORE</div>
+                        <div id="res-score" class="text-2xl md:text-3xl font-display font-bold text-yellow-300 mt-1">0</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-700/50">
+                        <div class="text-xs text-indigo-300 font-bold uppercase">ACCURACY</div>
+                        <div id="res-accuracy" class="text-2xl md:text-3xl font-display font-bold text-cyan-300 mt-1">0%</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-700/50">
+                        <div class="text-xs text-indigo-300 font-bold uppercase">BEST STREAK</div>
+                        <div id="res-streak" class="text-2xl md:text-3xl font-display font-bold text-pink-400 mt-1">0</div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-700/50">
+                        <div class="text-xs text-indigo-300 font-bold uppercase">BADGES UNLOCKED</div>
+                        <div id="res-badges-earned" class="text-2xl md:text-3xl font-display font-bold text-emerald-400 mt-1">+0</div>
+                    </div>
+                </div>
+
+                <!-- Short Performance Feedback -->
+                <p id="res-feedback-msg" class="text-sm md:text-base text-indigo-100 max-w-xl mx-auto italic relative z-10">
+                    Excellent navigational skills, Cadet! Your knowledge of celestial dynamics powered our launch successfully.
+                </p>
+
+                <!-- Action Controls -->
+                <div class="flex flex-wrap items-center justify-center gap-4 pt-4 relative z-10">
+                    <button onclick="app.replayCurrentMode()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Try Again</span>
+                    </button>
+
+                    <button onclick="app.showHome()" class="bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-600/60 text-indigo-100 font-bold px-6 py-3 rounded-2xl flex items-center gap-2 shadow-md hover:scale-105 transition-all">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Mission Control</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BADGES MODAL DIALOG -->
+    <div id="modal-badges" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel rounded-3xl max-w-2xl w-full p-6 border border-indigo-500/40 space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="app.closeBadgesModal()" class="absolute top-4 right-4 text-indigo-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 border-b border-indigo-800/60 pb-4">
+                <div class="w-12 h-12 rounded-2xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-xl text-white">Astronaut Achievements</h3>
+                    <p class="text-xs text-indigo-300">Earn badges by completing challenges across the universe!</p>
+                </div>
+            </div>
+
+            <!-- Badges Grid -->
+            <div id="badges-grid-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Badges dynamically rendered here -->
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="app.closeBadgesModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-xs">
+                    Close Terminal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. WEB AUDIO API SYNTHESIZER (SOUND FX ENGINE)
+           ========================================================================== */
+        class SoundEngine {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+
+                osc1.frequency.setValueAtTime(523.25, now); // C5
+                osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+
+                osc2.frequency.setValueAtTime(261.63, now);
+                osc2.frequency.exponentialRampToValueAtTime(392.00, now + 0.2);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.35);
+                osc2.stop(now + 0.35);
+            }
+
+            playWrong() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+
+            playFanfare() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C
+                notes.forEach((freq, idx) => {
+                    const now = this.ctx.currentTime + (idx * 0.1);
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                });
+            }
+        }
+
+        const soundFX = new SoundEngine();
+
+        /* ==========================================================================
+           2. EDUCATIONAL CONTENT DATASETS (GRADE 11 SCIENCE)
+           ========================================================================== */
+
+        const QUIZ_QUESTIONS = [
+            {
+                question: "Which Earth subsystem includes all liquid, frozen, and underground water on our planet?",
+                options: ["Atmosphere", "Hydrosphere", "Geosphere", "Biosphere"],
+                correct: 1,
+                explanation: "The hydrosphere encompasses all water bodies on Earth, including oceans, lakes, ice caps (cryosphere), and groundwater."
+            },
+            {
+                question: "What primary mechanism allows Earth to maintain liquid water and a habitable surface temperature?",
+                options: ["Strong magnetic radiation", "Natural greenhouse effect", "Volcanic friction", "Tidal pull of Jupiter"],
+                correct: 1,
+                explanation: "Earth's atmosphere traps just enough heat via the natural greenhouse effect to keep water liquid and sustain life."
+            },
+            {
+                question: "Which model proposes that the Solar System formed from a rotating cloud of interstellar gas and dust?",
+                options: ["Big Bang Theory", "Nebular Hypothesis", "Steady State Model", "Pulsating Universe"],
+                correct: 1,
+                explanation: "The Nebular Hypothesis explains that the Sun and planets condensed from a collapsing rotating nebula around 4.6 billion years ago."
+            },
+            {
+                question: "Terrestrial planets (Mercury, Venus, Earth, Mars) are primarily composed of:",
+                options: ["Hydrogen and Helium gas", "Methane and Ammonia ice", "Silicate rocks and metals", "Liquid nitrogen"],
+                correct: 2,
+                explanation: "Inner planets are rocky and metallic because high heat near the early Sun prevented volatile gases from condensing."
+            },
+            {
+                question: "What is the primary energy source powering star fusion reactions in main sequence stars?",
+                options: ["Hydrogen fusion into Helium", "Uranium fission", "Carbon combustion", "Gravitational decay"],
+                correct: 0,
+                explanation: "Main sequence stars convert Hydrogen into Helium in their cores via nuclear fusion, releasing massive radiant energy."
+            },
+            {
+                question: "Which galaxy type best describes our home galaxy, the Milky Way?",
+                options: ["Elliptical Galaxy", "Irregular Galaxy", "Barred Spiral Galaxy", "Lenticular Galaxy"],
+                correct: 2,
+                explanation: "The Milky Way is a barred spiral galaxy with a central bar-shaped structure and prominent spiral arms."
+            },
+            {
+                question: "What event provided Earth with its early atmosphere and oceans through volcanic gases?",
+                options: ["Outgassing", "Photosynthesis", "Subduction", "Solar wind sweeping"],
+                correct: 0,
+                explanation: "Volcanic outgassing released water vapor, carbon dioxide, and nitrogen, forming early atmospheres and condensed oceans."
+            },
+            {
+                question: "Which terrestrial planet is known as Earth's 'twin' due to similar size and density, despite its extreme greenhouse heat?",
+                options: ["Mars", "Venus", "Mercury", "Jupiter"],
+                correct: 1,
+                explanation: "Venus has nearly identical mass and size to Earth, but possesses a thick CO2 atmosphere with runaway greenhouse heat."
+            }
+        ];
+
+        const PLANET_CHALLENGES = [
+            {
+                name: "Mars",
+                icon: "fa-solid fa-circle text-red-500",
+                clues: [
+                    "Known as the 'Red Planet' due to iron oxide (rust) on its surface.",
+                    "Home to Olympus Mons, the largest volcano in the Solar System.",
+                    "Has two tiny moons named Phobos and Deimos."
+                ],
+                options: ["Venus", "Mars", "Mercury", "Jupiter"],
+                correct: 1,
+                explanation: "Mars gets its reddish hue from iron oxide dust and holds massive extinct shield volcanoes like Olympus Mons."
+            },
+            {
+                name: "Jupiter",
+                icon: "fa-solid fa-circle text-amber-500",
+                clues: [
+                    "The largest planet in our Solar System with a Great Red Spot storm.",
+                    "A gas giant made mostly of hydrogen and helium.",
+                    "Possesses over 80 moons, including Europa and Ganymede."
+                ],
+                options: ["Saturn", "Neptune", "Jupiter", "Uranus"],
+                correct: 2,
+                explanation: "Jupiter contains more than twice the mass of all other planets combined and has a storm raging for centuries."
+            },
+            {
+                name: "Saturn",
+                icon: "fa-solid fa-ring text-yellow-300",
+                clues: [
+                    "Famous for its spectacular, extensive ring system made of ice and rock.",
+                    "So low in overall density that it could float in a giant bathtub of water!",
+                    "Its largest moon, Titan, has dense clouds and liquid methane lakes."
+                ],
+                options: ["Uranus", "Saturn", "Jupiter", "Neptune"],
+                correct: 1,
+                explanation: "Saturn's density is less than water (0.69 g/cm³), and its bright rings extend up to 282,000 kilometers across."
+            },
+            {
+                name: "Mercury",
+                icon: "fa-solid fa-circle text-gray-400",
+                clues: [
+                    "Closest planet to the Sun with extreme temperature swings.",
+                    "Has almost no atmosphere to retain heat or protect against impacts.",
+                    "Covered in cratered, heavily battered terrain."
+                ],
+                options: ["Mercury", "Venus", "Mars", "Pluto"],
+                correct: 0,
+                explanation: "Mercury experiences extreme temperatures ranging from 430°C in sunlight down to -180°C during its long nights."
+            }
+        ];
+
+        const TF_QUESTIONS = [
+            {
+                statement: "Earth is the only inner terrestrial planet in our solar system with a strong magnetic field generated by a liquid metallic core.",
+                correct: true,
+                explanation: "True! Earth's geodynamo in its liquid outer core generates a magnetosphere that shields us from harmful solar radiation."
+            },
+            {
+                statement: "Stars generate light through chemical fire combustion reactions.",
+                correct: false,
+                explanation: "False! Stars shine via nuclear fusion (combining atomic nuclei), not chemical combustion or burning wood/fuel."
+            },
+            {
+                statement: "The Sun contains over 99% of all the mass in our entire Solar System.",
+                correct: true,
+                explanation: "True! The Sun accounts for approximately 99.86% of the total mass of the Solar System."
+            },
+            {
+                statement: "Earth's atmosphere consists mainly of Oxygen gas (around 78%).",
+                correct: false,
+                explanation: "False! Nitrogen makes up about 78% of Earth's air, while Oxygen accounts for roughly 21%."
+            },
+            {
+                statement: "Light-years measure time, representing how long light takes to reach the ocean.",
+                correct: false,
+                explanation: "False! A light-year is a unit of astronomical *distance*—the distance light travels in one Julian year (~9.46 trillion km)."
+            }
+        ];
+
+        const MATCHING_PAIRS = [
+            { id: 1, term: "Biosphere", def: "Global ecological system incorporating all living beings and their relationships." },
+            { id: 2, term: "Nebula", def: "A vast interstellar cloud of dust, hydrogen, helium, and ionized gases." },
+            { id: 3, term: "Supernova", def: "A colossal explosion marking the end of a massive star's life cycle." },
+            { id: 4, term: "Plate Tectonics", def: "Movement of rigid lithospheric plates shaping Earth's crustal features." }
+        ];
+
+        const FORMATION_EVENTS = [
+            { id: 1, title: "Solar Nebula Collapse", desc: "A rotating cloud of gas and dust collapses under gravity to form the protoplanetary disk." },
+            { id: 2, title: "Planetesimal Accretion", desc: "Dust collides and clumps together, growing into rocky protoplanets through gravity." },
+            { id: 3, title: "Giant Impact & Moon Formation", desc: "A Mars-sized body (Theia) strikes early Earth, ejecting debris that forms the Moon." },
+            { id: 4, title: "Volcanic Outgassing & Oceans", desc: "Cooling Earth releases steam and gases, condensing into liquid oceans." },
+            { id: 5, title: "Emergence of Photosynthesis", desc: "Early cyanobacteria release oxygen, transforming Earth's atmosphere." }
+        ];
+
+        const BADGES_DEFINITIONS = [
+            { id: "cadet", name: "Space Cadet", desc: "Start your first space mission", icon: "fa-user-astronaut", color: "text-cyan-400" },
+            { id: "quiz_master", name: "Starlight Scholar", desc: "Score over 800 points in Space Quiz", icon: "fa-graduation-cap", color: "text-yellow-400" },
+            { id: "planet_hunter", name: "Planet Hunter", desc: "Complete Planet Challenge with 100% accuracy", icon: "fa-globe", color: "text-pink-400" },
+            { id: "time_lord", name: "Chronos Explorer", desc: "Successfully sequence Earth Formation Timeline", icon: "fa-hourglass-half", color: "text-emerald-400" },
+            { id: "speed_demon", name: "Lightning Rocket", desc: "Score 5+ correct in Lightning Round", icon: "fa-bolt", color: "text-amber-400" },
+            { id: "alpha_mission", name: "Alpha Navigator", desc: "Successfully complete Expedition Alpha Centauri", icon: "fa-shuttle-space", color: "text-purple-400" }
+        ];
+
+        /* ==========================================================================
+           3. MAIN GAME CONTROLLER & LOGIC ENGINE
+           ========================================================================== */
+        class SpaceGameApp {
+            constructor() {
+                this.difficulty = 'medium'; // easy, medium, hard
+                this.score = 0;
+                this.streak = 0;
+                this.maxStreak = 0;
+                this.unlockedBadges = new Set(['cadet']);
+                
+                this.currentMode = null;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.totalModeQuestions = 0;
+                
+                this.timerInterval = null;
+                this.timeLeft = 0;
+
+                // State holders for interactive modes
+                this.matchSelectedTerm = null;
+                this.matchPairsCount = 0;
+                this.formationCurrentOrder = [];
+            }
+
+            init() {
+                this.setupStarsBackground();
+                this.loadState();
+                this.updateHeaderStats();
+                this.showHome();
+            }
+
+            /* --- Storage & Settings --- */
+            saveState() {
+                try {
+                    const data = {
+                        score: this.score,
+                        unlockedBadges: Array.from(this.unlockedBadges)
+                    };
+                    localStorage.setItem('mission_space_save', JSON.stringify(data));
+                } catch(e) {}
+            }
+
+            loadState() {
+                try {
+                    const raw = localStorage.getItem('mission_space_save');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        this.score = parsed.score || 0;
+                        this.unlockedBadges = new Set(parsed.unlockedBadges || ['cadet']);
+                    }
+                } catch(e) {}
+            }
+
+            setDifficulty(diff) {
+                soundFX.playClick();
+                this.difficulty = diff;
+                ['easy', 'medium', 'hard'].forEach(d => {
+                    const btn = document.getElementById(`diff-btn-${d}`);
+                    if (btn) {
+                        if (d === diff) {
+                            btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-md";
+                        } else {
+                            btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white";
+                        }
+                    }
+                });
+            }
+
+            toggleSound() {
+                soundFX.enabled = !soundFX.enabled;
+                const icon = document.getElementById('sound-icon');
+                if (soundFX.enabled) {
+                    icon.className = "fa-solid fa-volume-high";
+                    soundFX.playClick();
+                } else {
+                    icon.className = "fa-solid fa-volume-xmark text-red-400";
+                }
+            }
+
+            updateHeaderStats() {
+                document.getElementById('header-points').textContent = `${this.score} PTS`;
+                
+                // Rank calculation
+                let rank = "Cadet";
+                if (this.score >= 3000) rank = "Cosmic Master";
+                else if (this.score >= 1800) rank = "Galactic Explorer";
+                else if (this.score >= 800) rank = "Stellar Navigator";
+
+                document.getElementById('header-rank').textContent = rank;
+                document.getElementById('badge-count-badge').textContent = this.unlockedBadges.size;
+            }
+
+            unlockBadge(id) {
+                if (!this.unlockedBadges.has(id)) {
+                    this.unlockedBadges.add(id);
+                    this.saveState();
+                    this.updateHeaderStats();
+                    soundFX.playFanfare();
+                    
+                    const badgeObj = BADGES_DEFINITIONS.find(b => b.id === id);
+                    if (badgeObj) {
+                        confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+                    }
+                }
+            }
+
+            /* --- View Navigation --- */
+            showHome() {
+                soundFX.playClick();
+                this.stopTimer();
+                document.getElementById('view-home').classList.remove('hidden');
+                document.getElementById('view-game').classList.add('hidden');
+                document.getElementById('view-results').classList.add('hidden');
+                this.updateHeaderStats();
+            }
+
+            showGameView() {
+                document.getElementById('view-home').classList.add('hidden');
+                document.getElementById('view-game').classList.remove('hidden');
+                document.getElementById('view-results').classList.add('hidden');
+                document.getElementById('feedback-card').classList.add('hidden');
+            }
+
+            showResultsView() {
+                this.stopTimer();
+                document.getElementById('view-home').classList.add('hidden');
+                document.getElementById('view-game').classList.add('hidden');
+                document.getElementById('view-results').classList.remove('hidden');
+
+                const accuracy = this.totalModeQuestions > 0 ? Math.round((this.correctCount / this.totalModeQuestions) * 100) : 100;
+                
+                document.getElementById('res-score').textContent = this.score;
+                document.getElementById('res-accuracy').textContent = `${accuracy}%`;
+                document.getElementById('res-streak').textContent = `${this.maxStreak}x`;
+                document.getElementById('res-badges-earned').textContent = `${this.unlockedBadges.size}`;
+
+                // Dynamic feedback comment
+                let msg = "A commendable spaceflight! Continue studying the cosmos to sharpen your navigation.";
+                if (accuracy >= 80) {
+                    msg = "Outstanding Commander performance! Your deep mastery of Earth & Space science is star-worthy.";
+                } else if (accuracy < 50) {
+                    msg = "Mission completed, but telemetry indicates some system glitches. Review concepts and retry!";
+                }
+                document.getElementById('res-feedback-msg').textContent = msg;
+
+                if (accuracy >= 70) soundFX.playFanfare();
+                this.saveState();
+                this.updateHeaderStats();
+            }
+
+            confirmQuit() {
+                soundFX.playClick();
+                if (confirm("Return to Mission Control? Progress in this active round will be lost.")) {
+                    this.showHome();
+                }
+            }
+
+            /* --- Mode Controllers --- */
+            startMode(mode) {
+                soundFX.playClick();
+                this.currentMode = mode;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.streak = 0;
+                this.maxStreak = 0;
+                this.showGameView();
+
+                if (mode === 'quiz') this.setupQuizMode();
+                else if (mode === 'planet') this.setupPlanetMode();
+                else if (mode === 'tf') this.setupTFMode();
+                else if (mode === 'match') this.setupMatchMode();
+                else if (mode === 'formation') this.setupFormationMode();
+                else if (mode === 'lightning') this.setupLightningMode();
+                else if (mode === 'mission') this.setupMissionMode();
+            }
+
+            replayCurrentMode() {
+                if (this.currentMode) this.startMode(this.currentMode);
+                else this.showHome();
+            }
+
+            /* --- Timer Helpers --- */
+            startTimer(seconds, onExpire) {
+                this.stopTimer();
+                this.timeLeft = seconds;
+                const timerEl = document.getElementById('game-timer');
+                timerEl.textContent = `${this.timeLeft}s`;
+
+                this.timerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    timerEl.textContent = `${this.timeLeft}s`;
+                    if (this.timeLeft <= 0) {
+                        this.stopTimer();
+                        if (onExpire) onExpire();
+                    }
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            /* --- Generic Scoring & Feedback --- */
+            handleAnswer(isCorrect, explanation, customPoints) {
+                const feedbackCard = document.getElementById('feedback-card');
+                const feedbackIconBox = document.getElementById('feedback-icon-box');
+                const feedbackTitle = document.getElementById('feedback-title');
+                const feedbackText = document.getElementById('feedback-text');
+
+                feedbackCard.classList.remove('hidden');
+
+                if (isCorrect) {
+                    soundFX.playCorrect();
+                    this.streak++;
+                    if (this.streak > this.maxStreak) this.maxStreak = this.streak;
+                    
+                    const basePoints = customPoints || 100;
+                    const diffMultiplier = this.difficulty === 'hard' ? 1.5 : (this.difficulty === 'easy' ? 0.8 : 1);
+                    const streakBonus = Math.min(this.streak * 10, 50);
+                    const earned = Math.round((basePoints + streakBonus) * diffMultiplier);
+
+                    this.score += earned;
+                    this.correctCount++;
+
+                    feedbackCard.className = "glass-panel rounded-2xl p-5 border-2 border-emerald-500/80 bg-emerald-950/30 animate-bounce-short";
+                    feedbackIconBox.className = "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl shrink-0";
+                    feedbackIconBox.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    feedbackTitle.className = "font-display font-bold text-lg text-emerald-300";
+                    feedbackTitle.textContent = `Correct! (+${earned} PTS)`;
+
+                    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+                } else {
+                    soundFX.playWrong();
+                    this.streak = 0;
+
+                    feedbackCard.className = "glass-panel rounded-2xl p-5 border-2 border-pink-500/80 bg-pink-950/30 animate-bounce-short";
+                    feedbackIconBox.className = "w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center text-2xl shrink-0";
+                    feedbackIconBox.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    feedbackTitle.className = "font-display font-bold text-lg text-pink-300";
+                    feedbackTitle.textContent = "Telemetry Error (Incorrect)";
+                }
+
+                feedbackText.textContent = explanation;
+
+                // Update UI state
+                document.getElementById('game-score').textContent = this.score;
+                document.getElementById('game-streak').textContent = `${this.streak}x`;
+                this.updateHeaderStats();
+            }
+
+            nextQuestion() {
+                soundFX.playClick();
+                document.getElementById('feedback-card').classList.add('hidden');
+                this.currentIndex++;
+
+                if (this.currentMode === 'quiz') this.renderQuizQuestion();
+                else if (this.currentMode === 'planet') this.renderPlanetQuestion();
+                else if (this.currentMode === 'tf') this.renderTFQuestion();
+                else if (this.currentMode === 'lightning') this.renderLightningQuestion();
+                else if (this.currentMode === 'mission') this.renderMissionStage();
+            }
+
+            updateProgress(current, total) {
+                const pct = Math.round((current / total) * 100);
+                document.getElementById('game-progress-bar').style.width = `${pct}%`;
+            }
+
+            /* ==========================================================================
+               MODE 1: SPACE QUIZ
+               ========================================================================== */
+            setupQuizMode() {
+                this.totalModeQuestions = QUIZ_QUESTIONS.length;
+                document.getElementById('game-mode-title').textContent = "SPACE QUIZ";
+                this.renderQuizQuestion();
+            }
+
+            renderQuizQuestion() {
+                if (this.currentIndex >= QUIZ_QUESTIONS.length) {
+                    if (this.score >= 800) this.unlockBadge('quiz_master');
+                    this.showResultsView();
+                    return;
+                }
+
+                const q = QUIZ_QUESTIONS[this.currentIndex];
+                document.getElementById('game-mode-subtitle').textContent = `Question ${this.currentIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+                this.updateProgress(this.currentIndex, QUIZ_QUESTIONS.length);
+
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-6">
+                        <h3 class="text-lg md:text-xl font-display font-bold text-white leading-snug">${q.question}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="quiz-options">
+                            ${q.options.map((opt, idx) => `
+                                <button onclick="app.checkQuizAnswer(${idx})" class="glass-card p-4 rounded-xl text-left font-semibold text-sm hover:bg-indigo-600/40 hover:border-indigo-400 transition-all flex items-center justify-between group">
+                                    <span>${opt}</span>
+                                    <i class="fa-solid fa-circle-chevron-right opacity-0 group-hover:opacity-100 text-cyan-400 transition-opacity"></i>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                // Timer based on difficulty
+                const time = this.difficulty === 'hard' ? 12 : (this.difficulty === 'easy' ? 25 : 18);
+                this.startTimer(time, () => {
+                    this.handleAnswer(false, `Time expired! ${q.explanation}`);
+                });
+            }
+
+            checkQuizAnswer(selectedIdx) {
+                this.stopTimer();
+                const q = QUIZ_QUESTIONS[this.currentIndex];
+                const buttons = document.querySelectorAll('#quiz-options button');
+                buttons.forEach((btn, idx) => {
+                    btn.disabled = true;
+                    if (idx === q.correct) btn.classList.add('bg-emerald-600/60', 'border-emerald-400');
+                    else if (idx === selectedIdx) btn.classList.add('bg-pink-600/60', 'border-pink-400');
+                });
+
+                this.handleAnswer(selectedIdx === q.correct, q.explanation);
+            }
+
+            /* ==========================================================================
+               MODE 2: PLANET CHALLENGE
+               ========================================================================== */
+            setupPlanetMode() {
+                this.totalModeQuestions = PLANET_CHALLENGES.length;
+                document.getElementById('game-mode-title').textContent = "PLANET CHALLENGE";
+                this.renderPlanetQuestion();
+            }
+
+            renderPlanetQuestion() {
+                if (this.currentIndex >= PLANET_CHALLENGES.length) {
+                    if (this.correctCount === PLANET_CHALLENGES.length) this.unlockBadge('planet_hunter');
+                    this.showResultsView();
+                    return;
+                }
+
+                const p = PLANET_CHALLENGES[this.currentIndex];
+                document.getElementById('game-mode-subtitle').textContent = `Target Body ${this.currentIndex + 1} of ${PLANET_CHALLENGES.length}`;
+                this.updateProgress(this.currentIndex, PLANET_CHALLENGES.length);
+
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-6">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-950/80 border border-indigo-700 flex items-center justify-center text-4xl shadow-inner">
+                                <i class="${p.icon}"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-pink-400 uppercase tracking-widest">ASTRONOMICAL DATA CLUES</span>
+                                <h3 class="text-lg font-display font-bold text-white">Identify this Planetary Body</h3>
+                            </div>
+                        </div>
+
+                        <ul class="space-y-2 bg-indigo-950/50 p-4 rounded-xl border border-indigo-900/60 text-xs md:text-sm text-indigo-100">
+                            ${p.clues.map(c => `<li class="flex items-start gap-2"><i class="fa-solid fa-satellite text-cyan-400 mt-1"></i><span>${c}</span></li>`).join('')}
+                        </ul>
+
+                        <div class="grid grid-cols-2 gap-3" id="planet-options">
+                            ${p.options.map((opt) => `
+                                <button onclick="app.checkPlanetAnswer('${opt}')" class="glass-card p-3.5 rounded-xl font-bold text-sm text-center hover:bg-indigo-600/40 hover:border-indigo-400 transition-all">
+                                    ${opt}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                this.startTimer(20, () => {
+                    this.handleAnswer(false, `Time expired! ${p.explanation}`);
+                });
+            }
+
+            checkPlanetAnswer(selectedName) {
+                this.stopTimer();
+                const p = PLANET_CHALLENGES[this.currentIndex];
+                const isCorrect = selectedName === p.name;
+                
+                const buttons = document.querySelectorAll('#planet-options button');
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    if (btn.textContent.trim() === p.name) btn.classList.add('bg-emerald-600/60', 'border-emerald-400');
+                    else if (btn.textContent.trim() === selectedName) btn.classList.add('bg-pink-600/60', 'border-pink-400');
+                });
+
+                this.handleAnswer(isCorrect, p.explanation);
+            }
+
+            /* ==========================================================================
+               MODE 3: TRUE OR FALSE
+               ========================================================================== */
+            setupTFMode() {
+                this.totalModeQuestions = TF_QUESTIONS.length;
+                document.getElementById('game-mode-title').textContent = "TRUE OR FALSE";
+                this.renderTFQuestion();
+            }
+
+            renderTFQuestion() {
+                if (this.currentIndex >= TF_QUESTIONS.length) {
+                    this.showResultsView();
+                    return;
+                }
+
+                const item = TF_QUESTIONS[this.currentIndex];
+                document.getElementById('game-mode-subtitle').textContent = `Statement ${this.currentIndex + 1} of ${TF_QUESTIONS.length}`;
+                this.updateProgress(this.currentIndex, TF_QUESTIONS.length);
+
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 md:p-8 border border-indigo-700/50 space-y-6 text-center">
+                        <div class="inline-block bg-yellow-500/20 text-yellow-300 text-xs font-bold px-3 py-1 rounded-full border border-yellow-500/30">
+                            VERIFY SCIENTIFIC FACT
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-display font-bold text-white leading-relaxed max-w-2xl mx-auto">
+                            "${item.statement}"
+                        </h3>
+
+                        <div class="flex justify-center gap-4 pt-4" id="tf-options">
+                            <button onclick="app.checkTFAnswer(true)" class="w-36 py-4 rounded-2xl bg-emerald-600/80 hover:bg-emerald-500 font-display font-bold text-lg text-white border-b-4 border-emerald-800 shadow-lg hover:scale-105 transition-all">
+                                <i class="fa-solid fa-check mr-2"></i> TRUE
+                            </button>
+                            <button onclick="app.checkTFAnswer(false)" class="w-36 py-4 rounded-2xl bg-pink-600/80 hover:bg-pink-500 font-display font-bold text-lg text-white border-b-4 border-pink-800 shadow-lg hover:scale-105 transition-all">
+                                <i class="fa-solid fa-xmark mr-2"></i> FALSE
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                this.startTimer(15, () => {
+                    this.handleAnswer(false, `Time expired! ${item.explanation}`);
+                });
+            }
+
+            checkTFAnswer(userBool) {
+                this.stopTimer();
+                const item = TF_QUESTIONS[this.currentIndex];
+                this.handleAnswer(userBool === item.correct, item.explanation);
+            }
+
+            /* ==========================================================================
+               MODE 4: MATCH THE STARS
+               ========================================================================== */
+            setupMatchMode() {
+                this.totalModeQuestions = MATCHING_PAIRS.length;
+                this.matchSelectedTerm = null;
+                this.matchPairsCount = 0;
+                document.getElementById('game-mode-title').textContent = "MATCH THE STARS";
+                document.getElementById('game-mode-subtitle').textContent = "Connect Scientific Terms with Definitions";
+                this.updateProgress(0, MATCHING_PAIRS.length);
+                this.stopTimer();
+
+                const shuffledDefs = [...MATCHING_PAIRS].sort(() => Math.random() - 0.5);
+
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-4">
+                        <p class="text-xs text-indigo-200 text-center">Click a term on the left, then select its matching definition on the right!</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Terms Column -->
+                            <div class="space-y-3" id="match-terms-col">
+                                ${MATCHING_PAIRS.map(p => `
+                                    <button id="term-btn-${p.id}" onclick="app.selectMatchTerm(${p.id})" class="w-full glass-card p-3 rounded-xl font-bold text-sm text-left hover:border-cyan-400 transition-all border border-indigo-700/50">
+                                        <i class="fa-solid fa-star text-yellow-400 mr-2"></i> ${p.term}
+                                    </button>
+                                `).join('')}
+                            </div>
+
+                            <!-- Definitions Column -->
+                            <div class="space-y-3" id="match-defs-col">
+                                ${shuffledDefs.map(p => `
+                                    <button id="def-btn-${p.id}" onclick="app.selectMatchDef(${p.id})" class="w-full glass-card p-3 rounded-xl text-xs text-left leading-snug hover:border-pink-400 transition-all border border-indigo-700/50">
+                                        ${p.def}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            selectMatchTerm(id) {
+                soundFX.playClick();
+                this.matchSelectedTerm = id;
+                MATCHING_PAIRS.forEach(p => {
+                    const btn = document.getElementById(`term-btn-${p.id}`);
+                    if (btn && !btn.disabled) {
+                        if (p.id === id) btn.className = "w-full glass-card p-3 rounded-xl font-bold text-sm text-left bg-cyan-600/50 border-2 border-cyan-400 text-white shadow-lg";
+                        else btn.className = "w-full glass-card p-3 rounded-xl font-bold text-sm text-left hover:border-cyan-400 transition-all border border-indigo-700/50";
+                    }
+                });
+            }
+
+            selectMatchDef(id) {
+                if (!this.matchSelectedTerm) return;
+
+                if (this.matchSelectedTerm === id) {
+                    soundFX.playCorrect();
+                    const termBtn = document.getElementById(`term-btn-${id}`);
+                    const defBtn = document.getElementById(`def-btn-${id}`);
+
+                    termBtn.className = "w-full p-3 rounded-xl font-bold text-sm text-left bg-emerald-600/40 border border-emerald-500/60 text-emerald-200 line-through opacity-70";
+                    defBtn.className = "w-full p-3 rounded-xl text-xs text-left bg-emerald-600/40 border border-emerald-500/60 text-emerald-200 line-through opacity-70";
+                    
+                    termBtn.disabled = true;
+                    defBtn.disabled = true;
+
+                    this.matchPairsCount++;
+                    this.score += 150;
+                    this.updateProgress(this.matchPairsCount, MATCHING_PAIRS.length);
+                    document.getElementById('game-score').textContent = this.score;
+
+                    if (this.matchPairsCount === MATCHING_PAIRS.length) {
+                        this.handleAnswer(true, "All stellar concepts correctly paired!");
+                        setTimeout(() => this.showResultsView(), 1200);
+                    }
+                } else {
+                    soundFX.playWrong();
+                    this.selectMatchTerm(null);
+                }
+            }
+
+            /* ==========================================================================
+               MODE 5: EARTH FORMATION CHALLENGE
+               ========================================================================== */
+            setupFormationMode() {
+                this.totalModeQuestions = 1;
+                this.formationCurrentOrder = [...FORMATION_EVENTS].sort(() => Math.random() - 0.5);
+                document.getElementById('game-mode-title').textContent = "EARTH FORMATION";
+                document.getElementById('game-mode-subtitle').textContent = "Arrange Timeline in Correct Chronological Order";
+                this.updateProgress(0, 1);
+                this.stopTimer();
+
+                this.renderFormationBoard();
+            }
+
+            renderFormationBoard() {
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-4">
+                        <p class="text-xs text-indigo-200 text-center">Use the up/down arrows to order the geological formation events from Earliest (Top) to Latest (Bottom).</p>
+
+                        <div class="space-y-2.5 max-w-xl mx-auto">
+                            ${this.formationCurrentOrder.map((ev, idx) => `
+                                <div class="glass-card p-3.5 rounded-xl border border-indigo-700/60 flex items-center justify-between gap-3">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="w-6 h-6 rounded-full bg-indigo-900 text-cyan-300 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-700">${idx + 1}</span>
+                                        <div>
+                                            <h4 class="font-bold text-sm text-white">${ev.title}</h4>
+                                            <p class="text-[11px] text-indigo-200/80 leading-tight">${ev.desc}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1 shrink-0">
+                                        <button onclick="app.moveFormation(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30"' : 'class="hover:text-cyan-400"'}><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                                        <button onclick="app.moveFormation(${idx}, 1)" ${idx === FORMATION_EVENTS.length - 1 ? 'disabled class="opacity-30"' : 'class="hover:text-cyan-400"'}><i class="fa-solid fa-chevron-down text-xs"></i></button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="text-center pt-2">
+                            <button onclick="app.verifyFormationOrder()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-lg hover:scale-105 transition-all">
+                                Verify Timeline Sequence
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            moveFormation(idx, direction) {
+                soundFX.playClick();
+                const targetIdx = idx + direction;
+                if (targetIdx < 0 || targetIdx >= this.formationCurrentOrder.length) return;
+
+                const temp = this.formationCurrentOrder[idx];
+                this.formationCurrentOrder[idx] = this.formationCurrentOrder[targetIdx];
+                this.formationCurrentOrder[targetIdx] = temp;
+
+                this.renderFormationBoard();
+            }
+
+            verifyFormationOrder() {
+                let isCorrect = true;
+                for (let i = 0; i < this.formationCurrentOrder.length; i++) {
+                    if (this.formationCurrentOrder[i].id !== i + 1) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+
+                if (isCorrect) {
+                    this.unlockBadge('time_lord');
+                    this.handleAnswer(true, "Flawless chronological sequencing! You master planetary evolution timeline.");
+                } else {
+                    this.handleAnswer(false, "Incorrect sequence. Early Earth began with nebular collapse, followed by accretion, giant moon impact, ocean outgassing, and photosynthetic oxygenation.");
+                }
+
+                setTimeout(() => this.showResultsView(), 1800);
+            }
+
+            /* ==========================================================================
+               MODE 6: LIGHTNING ROUND
+               ========================================================================== */
+            setupLightningMode() {
+                this.totalModeQuestions = 10;
+                this.currentIndex = 0;
+                document.getElementById('game-mode-title').textContent = "LIGHTNING ROUND";
+                document.getElementById('game-mode-subtitle').textContent = "30-Second Speed Challenge";
+
+                this.startTimer(30, () => {
+                    if (this.correctCount >= 5) this.unlockBadge('speed_demon');
+                    this.showResultsView();
+                });
+
+                this.renderLightningQuestion();
+            }
+
+            renderLightningQuestion() {
+                const combinedPool = [...QUIZ_QUESTIONS, ...TF_QUESTIONS];
+                const q = combinedPool[this.currentIndex % combinedPool.length];
+                this.updateProgress(this.currentIndex, 10);
+
+                const area = document.getElementById('game-content-area');
+                
+                if (q.statement !== undefined) {
+                    // T/F Question
+                    area.innerHTML = `
+                        <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-4 text-center">
+                            <span class="text-xs font-bold text-red-400 uppercase tracking-widest">RAPID VERIFY</span>
+                            <h3 class="text-lg font-display font-bold text-white">"${q.statement}"</h3>
+                            <div class="flex justify-center gap-4 pt-2">
+                                <button onclick="app.checkLightningTF(${q.correct === true})" class="px-6 py-3 rounded-xl bg-emerald-600 font-bold text-white">TRUE</button>
+                                <button onclick="app.checkLightningTF(${q.correct === false})" class="px-6 py-3 rounded-xl bg-pink-600 font-bold text-white">FALSE</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Quiz Question
+                    area.innerHTML = `
+                        <div class="glass-panel rounded-2xl p-6 border border-indigo-700/50 space-y-4">
+                            <span class="text-xs font-bold text-red-400 uppercase tracking-widest">RAPID QUIZ</span>
+                            <h3 class="text-base font-display font-bold text-white">${q.question}</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${q.options.map((opt, idx) => `
+                                    <button onclick="app.checkLightningQuiz(${idx === q.correct})" class="glass-card p-3 rounded-xl text-xs font-bold text-left hover:border-cyan-400">
+                                        ${opt}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            checkLightningTF(isCorrect) {
+                if (isCorrect) {
+                    soundFX.playCorrect();
+                    this.score += 80;
+                    this.correctCount++;
+                } else {
+                    soundFX.playWrong();
+                }
+                document.getElementById('game-score').textContent = this.score;
+                this.currentIndex++;
+                this.renderLightningQuestion();
+            }
+
+            checkLightningQuiz(isCorrect) {
+                if (isCorrect) {
+                    soundFX.playCorrect();
+                    this.score += 80;
+                    this.correctCount++;
+                } else {
+                    soundFX.playWrong();
+                }
+                document.getElementById('game-score').textContent = this.score;
+                this.currentIndex++;
+                this.renderLightningQuestion();
+            }
+
+            /* ==========================================================================
+               MODE 7: FINAL SPACE MISSION (EXPEDITION ALPHA CENTAURI)
+               ========================================================================== */
+            setupMissionMode() {
+                this.totalModeQuestions = 3;
+                this.currentIndex = 0;
+                document.getElementById('game-mode-title').textContent = "EXPEDITION ALPHA CENTAURI";
+                this.renderMissionStage();
+            }
+
+            renderMissionStage() {
+                if (this.currentIndex >= 3) {
+                    this.unlockBadge('alpha_mission');
+                    this.showResultsView();
+                    return;
+                }
+
+                document.getElementById('game-mode-subtitle').textContent = `Mission Stage ${this.currentIndex + 1} of 3`;
+                this.updateProgress(this.currentIndex, 3);
+
+                const stages = [
+                    {
+                        stage: "STAGE 1: FUEL REFINING & BOOSTERS",
+                        task: "Select the primary atmospheric process that converted Earth's primitive reducing atmosphere into an oxygen-rich atmosphere essential for life:",
+                        options: ["Cyanobacteria Oxygenic Photosynthesis", "Solar Radiation Photolysis", "Cometary Ice Sublimation", "Geothermal Hydrothermal Venting"],
+                        correct: 0,
+                        explanation: "Early cyanobacteria evolved oxygenic photosynthesis, leading to the Great Oxidation Event around 2.4 billion years ago."
+                    },
+                    {
+                        stage: "STAGE 2: STELLAR NAVIGATION SYSTEM",
+                        task: "Identify the correct stellar spectral class sequence from hottest surface temperature to coolest:",
+                        options: ["O, B, A, F, G, K, M", "M, K, G, F, A, B, O", "A, B, C, D, E, F, G", "G, K, M, O, B, A, F"],
+                        correct: 0,
+                        explanation: "The Morgan-Keenan spectral classification orders stars from hottest (O - blue) to coolest (M - red)."
+                    },
+                    {
+                        stage: "STAGE 3: ORBITAL INSERTION AT ALPHA CENTAURI",
+                        task: "Which force primarily governs planetary orbits and star cluster stability across the universe?",
+                        options: ["Gravitational Force", "Electromagnetic Force", "Strong Nuclear Force", "Weak Nuclear Force"],
+                        correct: 0,
+                        explanation: "Gravity is the dominant attractive force that dictates large-scale cosmic structures, orbits, and planetary accretion."
+                    }
+                ];
+
+                const cur = stages[this.currentIndex];
+                const area = document.getElementById('game-content-area');
+                area.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-500/50 space-y-5">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-shuttle-space text-2xl text-cyan-400"></i>
+                            <h3 class="font-display font-bold text-lg text-yellow-300 tracking-wide">${cur.stage}</h3>
+                        </div>
+
+                        <p class="text-sm text-white font-semibold leading-relaxed">${cur.task}</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="mission-opts">
+                            ${cur.options.map((opt, idx) => `
+                                <button onclick="app.checkMissionAnswer(${idx === cur.correct}, '${cur.explanation}')" class="glass-card p-4 rounded-xl text-left text-xs md:text-sm font-bold hover:bg-indigo-600/50 hover:border-cyan-400 transition-all">
+                                    ${opt}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                this.startTimer(20, () => {
+                    this.handleAnswer(false, `Time expired! ${cur.explanation}`, 200);
+                });
+            }
+
+            checkMissionAnswer(isCorrect, explanation) {
+                this.stopTimer();
+                this.handleAnswer(isCorrect, explanation, 250);
+            }
+
+            /* --- Badges Modal --- */
+            showBadgesModal() {
+                soundFX.playClick();
+                const container = document.getElementById('badges-grid-container');
+                container.innerHTML = BADGES_DEFINITIONS.map(b => {
+                    const unlocked = this.unlockedBadges.has(b.id);
+                    return `
+                        <div class="p-3.5 rounded-2xl border ${unlocked ? 'glass-card border-indigo-600/60' : 'bg-indigo-950/40 border-indigo-900/40 opacity-50'} flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-900/80 flex items-center justify-center text-xl shrink-0 ${unlocked ? b.color : 'text-gray-600'}">
+                                <i class="fa-solid ${b.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs text-white">${b.name} ${unlocked ? '✓' : ''}</h4>
+                                <p class="text-[10px] text-indigo-300/80">${b.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('modal-badges').classList.remove('hidden');
+            }
+
+            closeBadgesModal() {
+                soundFX.playClick();
+                document.getElementById('modal-badges').classList.add('hidden');
+            }
+
+            /* ==========================================================================
+               4. BACKGROUND CANVAS PARTICLES (STARS & NEBULA EFFECT)
+               ========================================================================== */
+            setupStarsBackground() {
+                const canvas = document.getElementById('stars-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                let width = canvas.width = window.innerWidth;
+                let height = canvas.height = window.innerHeight;
+
+                window.addEventListener('resize', () => {
+                    width = canvas.width = window.innerWidth;
+                    height = canvas.height = window.innerHeight;
+                });
+
+                const stars = Array.from({ length: 120 }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.02 + 0.005
+                }));
+
+                function render() {
+                    ctx.clearRect(0, 0, width, height);
+
+                    stars.forEach(s => {
+                        s.alpha += s.speed;
+                        if (s.alpha > 1 || s.alpha < 0) s.speed = -s.speed;
+
+                        ctx.beginPath();
+                        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(s.alpha)})`;
+                        ctx.fill();
+                    });
+
+                    requestAnimationFrame(render);
+                }
+
+                render();
+            }
+        }
+
+        // Instantiate Global Application
+        let app;
+        window.onload = function() {
+            app = new SpaceGameApp();
+            app.init();
+        };
+    </script>
+</body>
+</html>
